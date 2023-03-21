@@ -7,8 +7,10 @@ interface SessionResponse {
 	cameraToken: string;
 	screenToken: string;
 	recordingEnabled: boolean;
+	isRecordingActive: boolean;
 	recordings?: RecordingInfo[];
-	streamingEnabled: boolean;
+	broadcastingEnabled: boolean;
+	isBroadcastingActive: boolean;
 }
 @Injectable({
 	providedIn: 'root'
@@ -54,17 +56,17 @@ export class RestService {
 		return this.deleteRequest(`recordings/delete/${recordingId}`);
 	}
 
-	async startStreaming(rtmpUrl: string) {
+	async startBroadcasting(broadcastUrl: string) {
 		const options = {
 			headers: new HttpHeaders({
 				'Content-Type': 'application/json'
 			})
 		};
-		return this.postRequest('streamings/start', { rtmpUrl }, options);
+		return this.postRequest('broadcasts/start', { broadcastUrl }, options);
 	}
 
-	stopStreaming() {
-		return this.deleteRequest('streamings/stop');
+	stopBroadcasting() {
+		return this.deleteRequest('broadcasts/stop');
 	}
 
 	private postRequest(path: string, body: any, options?: any): Promise<any> {

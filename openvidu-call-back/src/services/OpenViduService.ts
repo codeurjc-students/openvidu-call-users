@@ -4,13 +4,13 @@ import { OPENVIDU_SECRET, OPENVIDU_URL } from '../config';
 export class OpenViduService {
 	MODERATOR_TOKEN_NAME = 'ovCallModeratorToken';
 	recordingMap: Map<string, { token: string; recordingId: string }> = new Map<string, { token: string; recordingId: string }>();
-	streamingMap: Map<string, string> = new Map<string, string>();
 	protected static instance: OpenViduService;
 	private openvidu: OpenVidu;
 	private edition: string;
 
 	private constructor() {
 		this.openvidu = new OpenVidu(OPENVIDU_URL, OPENVIDU_SECRET);
+		if (process.env.NODE_ENV === 'production') this.openvidu.enableProdMode();
 	}
 
 	static getInstance() {
@@ -117,7 +117,19 @@ export class OpenViduService {
 		return recordingList.filter((recording) => recording.sessionId === sessionId && date <= recording.createdAt);
 	}
 
+	public async startBroadcasting(sessionId: string, url: string): Promise<void> {
+		return this.openvidu.startBroadcast(sessionId, url);
+	}
+
+	public async stopBroadcasting(sessionId: string): Promise<void> {
+		return this.openvidu.stopBroadcast(sessionId);
+	}
+
 	public isPRO(): boolean {
 		return this.edition.toUpperCase() === 'PRO';
+	}
+
+	public isCE(): boolean {
+		return this.edition.toUpperCase() === 'CE';
 	}
 }

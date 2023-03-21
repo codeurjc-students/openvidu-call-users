@@ -1,6 +1,15 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Params, Router } from '@angular/router';
-import { ParticipantService, RecordingInfo, StreamingError, StreamingInfo, TokenModel } from 'openvidu-angular';
+import {
+	BroadcastingError,
+	BroadcastingService,
+	BroadcastingStatus,
+	ParticipantService,
+	RecordingInfo,
+	RecordingService,
+	RecordingStatus,
+	TokenModel
+} from 'openvidu-angular';
 
 import { RestService } from '../../services/rest.service';
 
@@ -16,11 +25,10 @@ export class CallComponent implements OnInit {
 	closeClicked: boolean = false;
 	isSessionAlive: boolean = false;
 	recordingEnabled: boolean = true;
-	streamingEnabled: boolean = true;
+	broadcastingEnabled: boolean = true;
 	recordingList: RecordingInfo[] = [];
 	recordingError: any;
-	streamingError: StreamingError;
-	streamingInfo: StreamingInfo;
+	broadcastingError: BroadcastingError;
 	serverError: string = '';
 	loading: boolean = true;
 	private isDebugSession: boolean = false;
@@ -28,6 +36,8 @@ export class CallComponent implements OnInit {
 	constructor(
 		private restService: RestService,
 		private participantService: ParticipantService,
+		private recordingService: RecordingService,
+		private broadcastingService: BroadcastingService,
 		private router: Router,
 		private route: ActivatedRoute
 	) {}
@@ -85,21 +95,23 @@ export class CallComponent implements OnInit {
 		}
 	}
 
-	async onStartStreamingClicked(rtmpUrl: string) {
+	async onStartBroadcastingClicked(broadcastingUrl: string) {
 		try {
-			this.streamingError = undefined;
-			this.streamingInfo = await this.restService.startStreaming(rtmpUrl);
+			this.broadcastingError = undefined;
+			await this.restService.startBroadcasting(broadcastingUrl);
 		} catch (error) {
-			this.streamingError = error.error;
+			console.error(error);
+			this.broadcastingError = error.error;
 		}
 	}
 
-	async onStopStreamingClicked() {
+	async onStopBroadcastingClicked() {
 		try {
-			this.streamingError = undefined;
-			this.streamingInfo = await this.restService.stopStreaming();
+			this.broadcastingError = undefined;
+			await this.restService.stopBroadcasting();
 		} catch (error) {
-			this.streamingError = error.message || error;
+			console.error(error);
+			this.broadcastingError = error.message || error;
 		}
 	}
 
@@ -109,13 +121,17 @@ export class CallComponent implements OnInit {
 			console.warn('DEBUGGING SESSION');
 			nickname = this.participantService.getLocalParticipant().getNickname();
 		}
-		const response = await this.restService.getTokens(this.sessionId, nickname);
-		this.streamingEnabled = response.streamingEnabled;
-		this.recordingEnabled = response.recordingEnabled;
-		this.recordingList = response.recordings;
+		const { broadcastingEnabled, recordingEnabled, recordings, cameraToken, screenToken, isRecordingActive, isBroadcastingActive } =
+			await this.restService.getTokens(this.sessionId, nickname);
+
+		this.broadcastingEnabled = broadcastingEnabled;
+		this.recordingEnabled = recordingEnabled;
+		this.recordingList = recordings;
 		this.tokens = {
-			webcam: response.cameraToken,
-			screen: response.screenToken
+			webcam: cameraToken,
+			screen: screenToken
 		};
+		if (isRecordingActive) this.recordingService.updateStatus(RecordingStatus.STARTED);
+		if (isBroadcastingActive) this.broadcastingService.updateStatus(BroadcastingStatus.STARTED);
 	}
 }
